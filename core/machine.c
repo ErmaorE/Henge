@@ -39,6 +39,7 @@ int hv_knob_set(HvMachine *m, const char *name, int value) {
 }
 
 int hv_machine_init(HvMachine *m, size_t jit_bytes) {
+    knobs_init(); /* KNOB-1: without this the Mac engine read no HV_* knob at all */
     memset(m, 0, sizeof *m);
     if (hv_jit_region_open(&m->jit, jit_bytes) != 0) return -1;
     return init_rest(m);
