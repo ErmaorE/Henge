@@ -296,7 +296,11 @@ static int bank0(uint32_t a) {
 
 static uint64_t dist_read_body(void *opaque, uint64_t off, unsigned size) {
     HvGic *g = opaque;
-    if (off >= 0x6100 && off < 0x6100 + 8 * HV_GIC_NUM_IRQS) { /* IROUTER<n>, n >= 32 */
+    /* IROUTER<n> lives at 0x6000 + 8n for n = 32 .. HV_GIC_NUM_IRQS-1, so the
+       window ends at 0x6000 + 8 * HV_GIC_NUM_IRQS. It used to be checked as
+       0x6100 + 8 * HV_GIC_NUM_IRQS, which let n reach HV_GIC_NUM_IRQS + 31 and
+       read/write up to 256 bytes past route[]. */
+    if (off >= 0x6100 && off < 0x6000 + 8 * HV_GIC_NUM_IRQS) {
         uint64_t v = g->route[(off - 0x6000) / 8];
         return size == 8 ? v : (uint32_t)(v >> ((off & 4) * 8));
     }
@@ -315,7 +319,7 @@ static uint64_t dist_read_body(void *opaque, uint64_t off, unsigned size) {
 
 static void dist_write_body(void *opaque, uint64_t off, uint64_t v, unsigned size) {
     HvGic *g = opaque;
-    if (off >= 0x6100 && off < 0x6100 + 8 * HV_GIC_NUM_IRQS) {
+    if (off >= 0x6100 && off < 0x6000 + 8 * HV_GIC_NUM_IRQS) {
         uint64_t *r = &g->route[(off - 0x6000) / 8];
         if (size == 8) *r = v;
         else if (off & 4) *r = (*r & 0xffffffffull) | v << 32;
